@@ -2,8 +2,9 @@
 
 import { canSpread, containmentStars, initialState as containmentInitial, ORANGE, PROTECTED, savedCount, shieldsLeft, tick as containmentTick, toggleProtect, type ContainmentState } from '../core/containment';
 import { adjacency } from '../core/graph';
-import type { ContainmentLevel, SpreadLevel } from '../core/level';
+import type { ContainmentLevel, SpreadLevel, ThresholdLevel } from '../core/level';
 import { initialState as spreadInitial, isComplete, starsFor, tap, tick as spreadTick, type SpreadState } from '../core/spread';
+import { thresholdOf, thresholdTick } from '../core/threshold';
 import type { NodeColor } from './board';
 import type { ModeInfo } from './modes';
 import { gameShell } from './shell';
@@ -11,19 +12,32 @@ import { progressFor } from './storage';
 
 export function gameScreen(mode: ModeInfo, index: number) {
   const level = mode.levels[index];
-  return level.mode === 'spread' ? spreadGame(mode, index, level) : containmentGame(mode, index, level);
+  switch (level.mode) {
+    case 'spread':
+      return spreadGame(mode, index, level);
+    case 'containment':
+      return containmentGame(mode, index, level);
+    case 'threshold':
+      return spreadGame(mode, index, level);
+  }
 }
 
-function spreadGame(mode: ModeInfo, index: number, level: SpreadLevel) {
+/**
+ * Spread and Threshold share everything except the tick: Threshold nodes only light
+ * up once r of their neighbors are orange, and show r inside the circle.
+ */
+function spreadGame(mode: ModeInfo, index: number, level: SpreadLevel | ThresholdLevel) {
   const graph = level.graph;
   const adj = adjacency(graph);
+  const isThreshold = level.mode === 'threshold';
   return gameShell<SpreadState>(mode, index, {
     initial: () => spreadInitial(graph),
     tap: (s, node) => (s.orange[node] ? null : tap(s, node)),
     tick: (s) => {
-      const r = spreadTick(graph, s, adj);
+      const r = isThreshold ? thresholdTick(graph, s, adj) : spreadTick(graph, s, adj);
       return { state: r.state, paths: r.paths };
     },
+    labels: isThreshold ? graph.nodes.map((_, v) => String(thresholdOf(graph, v))) : undefined,
     colors: (s) => s.orange.map((on): NodeColor => (on ? 'orange' : 'none')),
     isFinished: isComplete,
     stats: [

@@ -36,6 +36,8 @@ export interface GameRules<S> {
   isFinished: (state: S) => boolean;
   stats: Stat<S>[];
   result: (state: S) => Result;
+  /** Optional text inside each node (e.g. thresholds). */
+  labels?: string[];
   /** Called once after the board is built (e.g. to mark the fire's sources). */
   setupBoard?: (board: Board) => void;
 }
@@ -61,7 +63,7 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
     haptics.tap();
     board.update({ colors: rules.colors(state), animate: 'tap', tapped: node });
     afterMove();
-  });
+  }, rules.labels);
   rules.setupBoard?.(board);
 
   const statEls = rules.stats.map((stat) => {

@@ -259,3 +259,23 @@ export function bridgedClusters(clusters: ClusterSpec[], bridges: [number, numbe
   }
   return { nodes, edges };
 }
+
+/**
+ * Wheel: a hub (node 0) in the middle of a rim cycle of n nodes (1..n).
+ * `spoke(i)` picks which rim nodes (0-based rim index) connect to the hub.
+ */
+export function wheel(n: number, spoke: (i: number) => boolean = () => true): Graph {
+  const rim = ring(n, 0.5);
+  const nodes = [node(0, 0.5, 0.5), ...rim.map(([x, y], i) => node(i + 1, x, y))];
+  const edges: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    edges.push([i + 1, ((i + 1) % n) + 1]);
+    if (spoke(i)) edges.push([0, i + 1]);
+  }
+  return { nodes, edges };
+}
+
+/** Copy of a graph with per-node thresholds (Mode 3) set by a function of node index. */
+export function withThresholds(graph: Graph, r: (v: number) => number): Graph {
+  return { nodes: graph.nodes.map((v, i) => ({ ...v, threshold: r(i) })), edges: graph.edges.map(([a, b]) => [a, b] as [number, number]) };
+}

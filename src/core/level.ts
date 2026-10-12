@@ -2,7 +2,7 @@
 
 import type { Graph } from './graph';
 
-export type ModeId = 'spread' | 'containment';
+export type ModeId = 'spread' | 'containment' | 'threshold';
 
 interface LevelBase {
   /** Stable id used for saved progress, e.g. "spread-07". */
@@ -27,7 +27,15 @@ export interface ContainmentLevel extends LevelBase {
   optimum: number;
 }
 
-export type Level = SpreadLevel | ContainmentLevel;
+export interface ThresholdLevel extends LevelBase {
+  mode: 'threshold';
+  /** Thresholds live on the nodes (`node.threshold`, default 1). */
+  params: Record<string, never>;
+  /** Precomputed optimal number of moves. */
+  par: number;
+}
+
+export type Level = SpreadLevel | ContainmentLevel | ThresholdLevel;
 
 /** Throws if a level is structurally broken (bad edge indices, positions out of range…). */
 export function validateLevel(level: Level): void {
@@ -44,8 +52,13 @@ export function validateLevel(level: Level): void {
     if (seen.has(key)) throw new Error(`${level.id}: duplicate edge ${key}`);
     seen.add(key);
   }
-  if (level.mode === 'spread') {
+  if (level.mode === 'spread' || level.mode === 'threshold') {
     if (!Number.isInteger(level.par) || level.par < 1) throw new Error(`${level.id}: bad par`);
+    if (level.mode === 'threshold') {
+      for (const v of level.graph.nodes) {
+        if (!Number.isInteger(v.threshold) || v.threshold! < 1) throw new Error(`${level.id}: node ${v.id} needs a threshold ≥ 1`);
+      }
+    }
   } else {
     const { k, sources } = level.params;
     if (!Number.isInteger(k) || k < 1) throw new Error(`${level.id}: bad k`);

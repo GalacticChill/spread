@@ -36,6 +36,8 @@ export class Board {
   constructor(
     private graph: Graph,
     private onTapNode: (node: number) => void,
+    /** Optional small text drawn inside each node (e.g. Threshold's r). */
+    private labels?: string[],
   ) {
     this.el = s('svg', { class: 'board', role: 'img', 'aria-label': 'Puzzle graph' }, this.edgeLayer, this.pulseLayer, this.nodeLayer);
     graph.edges.forEach(() => {
@@ -43,8 +45,9 @@ export class Board {
       this.edgeEls.push(line);
       this.edgeLayer.append(line);
     });
-    graph.nodes.forEach(() => {
-      const g = s('g', { class: 'node' }, s('circle', { class: 'halo' }), s('circle', { class: 'dot' }));
+    graph.nodes.forEach((_, i) => {
+      const label = labels?.[i] ? s('text', { class: 'label', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'aria-hidden': 'true' }, labels[i]) : null;
+      const g = s('g', { class: 'node' }, s('circle', { class: 'halo' }), s('circle', { class: 'dot' }), label);
       this.nodeEls.push(g);
       this.nodeLayer.append(g);
     });
@@ -112,7 +115,8 @@ export class Board {
     for (let i = 0; i < this.px.length; i++)
       for (let j = i + 1; j < this.px.length; j++) minDist = Math.min(minDist, Math.hypot(this.px[i][0] - this.px[j][0], this.px[i][1] - this.px[j][1]));
     if (!isFinite(minDist)) minDist = 80;
-    const r = Math.max(8, Math.min(18, minDist * 0.26));
+    // Labeled nodes need a little more room for the number.
+    const r = Math.max(this.labels ? 12 : 8, Math.min(18, minDist * 0.26));
     this.hitRadius = Math.max(24, minDist / 2);
 
     this.graph.edges.forEach(([a, b], i) => {
@@ -124,12 +128,18 @@ export class Board {
     });
     this.nodeEls.forEach((g, i) => {
       const [x, y] = this.px[i];
-      for (const c of Array.from(g.children)) {
-        c.setAttribute('cx', String(x));
-        c.setAttribute('cy', String(y));
-      }
+      g.children[0].setAttribute('cx', String(x));
+      g.children[0].setAttribute('cy', String(y));
+      g.children[1].setAttribute('cx', String(x));
+      g.children[1].setAttribute('cy', String(y));
       g.children[0].setAttribute('r', String(r));
       g.children[1].setAttribute('r', String(r));
+      const label = g.children[2];
+      if (label) {
+        label.setAttribute('x', String(x));
+        label.setAttribute('y', String(y));
+        label.setAttribute('font-size', String(Math.round(r * 1.05)));
+      }
     });
   }
 

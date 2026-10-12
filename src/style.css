@@ -409,6 +409,18 @@ a.level-tile:active {
   stroke: var(--white);
 }
 
+.node .label {
+  fill: var(--text-dim);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  transition: fill 0.25s ease-out;
+}
+
+.node.on .label {
+  fill: #1a0d00;
+}
+
 /* Nodes that started orange get a faint outer ring so the fire's origin stays visible. */
 .node.source .halo {
   opacity: 0.35;

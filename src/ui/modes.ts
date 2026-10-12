@@ -3,6 +3,7 @@
 import type { Level, ModeId } from '../core/level';
 import containmentLevels from '../levels/containment.json';
 import spreadLevels from '../levels/spread.json';
+import thresholdLevels from '../levels/threshold.json';
 
 export interface ModeInfo {
   id: ModeId;
@@ -37,6 +38,17 @@ export const MODES: ModeInfo[] = [
       'When orange can’t spread anymore, the game ends. Save as many nodes as you can.',
     ],
     levels: containmentLevels as Level[],
+  },
+  {
+    id: 'threshold',
+    title: 'Threshold',
+    tagline: 'Some nodes need convincing.',
+    rules: [
+      'Like Spread: tap to light a node, Tick to spread. Each is one move.',
+      'Each node shows a number. On a tick it lights only if at least that many of its neighbors are orange.',
+      'Light the whole graph in as few moves as you can. Match par for three stars.',
+    ],
+    levels: thresholdLevels as Level[],
   },
 ];
 
