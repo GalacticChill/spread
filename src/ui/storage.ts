@@ -2,6 +2,7 @@
 // still works (just without saving) in private windows or when storage is blocked.
 
 import type { ModeId } from '../core/level';
+import type { SandboxDoc } from '../core/sandbox';
 
 export interface LevelProgress {
   best: number;
@@ -56,4 +57,38 @@ export function hasSeenRules(mode: ModeId): boolean {
 export function markRulesSeen(mode: ModeId) {
   const seen = read<string[]>(RULES_KEY, []);
   if (!seen.includes(mode)) write(RULES_KEY, [...seen, mode]);
+}
+
+// ---------- Sandbox ----------
+
+const SANDBOX_CURRENT_KEY = 'spread:sandbox:current:v1';
+const SANDBOX_SAVED_KEY = 'spread:sandbox:saved:v1';
+
+export interface SavedGraph {
+  name: string;
+  savedAt: number;
+  doc: SandboxDoc;
+}
+
+/** The graph being edited, kept across visits. */
+export function loadSandboxCurrent(): SandboxDoc | null {
+  return read<SandboxDoc | null>(SANDBOX_CURRENT_KEY, null);
+}
+
+export function saveSandboxCurrent(doc: SandboxDoc) {
+  write(SANDBOX_CURRENT_KEY, doc);
+}
+
+export function savedGraphs(): SavedGraph[] {
+  return read<SavedGraph[]>(SANDBOX_SAVED_KEY, []);
+}
+
+/** Save under a name (replacing a save with the same name). */
+export function saveGraph(name: string, doc: SandboxDoc) {
+  const list = savedGraphs().filter((g) => g.name !== name);
+  write(SANDBOX_SAVED_KEY, [{ name, savedAt: Date.now(), doc }, ...list]);
+}
+
+export function deleteSavedGraph(name: string) {
+  write(SANDBOX_SAVED_KEY, savedGraphs().filter((g) => g.name !== name));
 }

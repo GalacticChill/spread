@@ -5,6 +5,7 @@ import './style.css';
 import { gameScreen } from './ui/game';
 import { getMode } from './ui/modes';
 import { homeScreen, levelSelectScreen, showRules } from './ui/screens';
+import { sandboxPlayScreen, sandboxScreen } from './ui/sandbox';
 import { hasSeenRules } from './ui/storage';
 
 const app = document.getElementById('app')!;
@@ -18,6 +19,19 @@ function route() {
   const [modeId, levelNum] = location.hash.replace(/^#\/?/, '').split('/');
   const mode = modeId ? getMode(modeId) : undefined;
   let screen: HTMLElement;
+
+  if (modeId === 'sandbox') {
+    const view = levelNum === 'play' ? sandboxPlayScreen() : sandboxScreen();
+    // Nothing to play (e.g. after a reload): back to the editor.
+    if (!view) {
+      location.replace('#/sandbox');
+      return;
+    }
+    app.replaceChildren(view.el);
+    cleanup = view.destroy;
+    window.scrollTo(0, 0);
+    return;
+  }
 
   if (!mode) {
     screen = homeScreen();

@@ -15,6 +15,10 @@ export interface ModeInfo {
   /** Short rules, one line each, for the first-time rules card. */
   rules: string[];
   levels: Level[];
+  /** Where Back goes (default: this mode's level list). */
+  backHref?: string;
+  /** Playing a sandbox graph: no saved progress, "Edit graph" instead of "Next level". */
+  sandbox?: boolean;
 }
 
 export const MODES: ModeInfo[] = [

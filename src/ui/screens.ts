@@ -25,7 +25,13 @@ export function homeScreen(): HTMLElement {
   }
   const upcoming = PLANNED_MODES - MODES.length;
   if (upcoming > 0) list.append(h('li', { class: 'soon' }, `${upcoming} more modes coming soon`));
-  return h('main', { class: 'screen home' }, h('header', { class: 'home-head' }, logo(), h('h1', {}, 'Spread')), list);
+  const sandbox = h(
+    'a',
+    { class: 'mode-card sandbox-card', href: '#/sandbox' },
+    h('span', { class: 'mode-title' }, 'Sandbox'),
+    h('span', { class: 'mode-tagline' }, 'Build your own graph, then play or solve it.'),
+  );
+  return h('main', { class: 'screen home' }, h('header', { class: 'home-head' }, logo(), h('h1', {}, 'Spread')), list, sandbox);
 }
 
 /** Small abstract mark: a hub lighting its neighbors. */

@@ -279,3 +279,51 @@ export function wheel(n: number, spoke: (i: number) => boolean = () => true): Gr
 export function withThresholds(graph: Graph, r: (v: number) => number): Graph {
   return { nodes: graph.nodes.map((v, i) => ({ ...v, threshold: r(i) })), edges: graph.edges.map(([a, b]) => [a, b] as [number, number]) };
 }
+
+/** Complete bipartite graph K_{m,n}: m nodes in a top row, n in a bottom row. */
+export function completeBipartite(m: number, n: number): Graph {
+  const row = (count: number, y: number, offset: number) =>
+    Array.from({ length: count }, (_, i) => node(offset + i, count === 1 ? 0.5 : i / (count - 1), y));
+  const nodes = [...row(m, 0, 0), ...row(n, 0.6, m)];
+  const edges: [number, number][] = [];
+  for (let a = 0; a < m; a++) for (let b = 0; b < n; b++) edges.push([a, m + b]);
+  return { nodes, edges };
+}
+
+/**
+ * Hypercube Q_d (2^d nodes; neighbors differ in one bit). Drawn by repeatedly copying
+ * the previous cube and shifting the copy, the usual way cubes are sketched.
+ */
+export function hypercube(d: number): Graph {
+  if (d === 3) return hypercubeQ3();
+  const shifts: [number, number][] = [
+    [1, 0],
+    [0, 1],
+    [0.45, -0.38],
+    [1.9, 0.75],
+    [-0.35, 2.3],
+  ];
+  const count = 2 ** d;
+  const nodes = Array.from({ length: count }, (_, i) => {
+    let x = 0, y = 0;
+    for (let bit = 0; bit < d; bit++) if (i & (1 << bit)) {
+      x += shifts[bit][0];
+      y += shifts[bit][1];
+    }
+    return node(i, x, y);
+  });
+  const edges: [number, number][] = [];
+  for (let i = 0; i < count; i++) for (let bit = 0; bit < d; bit++) {
+    const j = i ^ (1 << bit);
+    if (i < j) edges.push([i, j]);
+  }
+  return normalize({ nodes, edges });
+}
+
+/** Erdős–Rényi random graph G(n, p) on a circle. `rand` returns numbers in [0, 1). */
+export function randomGraph(n: number, p: number, rand: () => number = Math.random): Graph {
+  const nodes = (n === 1 ? [[0.5, 0.5] as [number, number]] : ring(n, 0.5)).map(([x, y], i) => node(i, x, y));
+  const edges: [number, number][] = [];
+  for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) if (rand() < p) edges.push([a, b]);
+  return { nodes, edges };
+}

@@ -62,6 +62,7 @@ export interface GameRules<S> {
 
 export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>): { el: HTMLElement; destroy: () => void } {
   const level = mode.levels[index];
+  const backHref = mode.backHref ?? `#/${mode.id}`;
 
   // Undo history: core states are immutable, so we can just keep the old ones.
   let history: S[] = [];
@@ -106,13 +107,15 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
   const tickBtn = h('button', { class: 'btn tick', onclick: doTick }, rules.tickLabel ?? 'Tick');
   const messageEl = h('p', { class: 'hint' });
 
-  const title = h('div', {}, h('div', {}, `Level ${index + 1}`), h('div', { class: 'family' }, level.name));
+  const title = mode.sandbox
+    ? h('div', {}, h('div', {}, 'Sandbox'), h('div', { class: 'family' }, mode.title))
+    : h('div', {}, h('div', {}, `Level ${index + 1}`), h('div', { class: 'family' }, level.name));
   const help = h('button', { class: 'icon-btn', 'aria-label': 'Rules', onclick: () => showRules(mode) }, icon('help'));
 
   const el = h(
     'main',
     { class: `screen game mode-${mode.id}` },
-    topBar(`#/${mode.id}`, title, help),
+    topBar(backHref, title, help),
     h('div', { class: 'stats' }, ...statEls.map((s) => s.el)),
     rules.message ? messageEl : null,
     h('div', { class: 'board-wrap' }, board.el),
@@ -178,7 +181,7 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
     if (!rules.isFinished(state)) return;
     finished = true;
     const result = rules.result(state);
-    const newBest = result.stars > 0 && recordResult(level.id, result.score, result.stars, result.lowerIsBetter);
+    const newBest = result.stars > 0 && !mode.sandbox && recordResult(level.id, result.score, result.stars, result.lowerIsBetter);
     refresh(); // after saving, so a "Best" stat shows the new score
     render(); // the final state may look different (e.g. Origin reveals the sources)
     // Let the last ripple land before the results card appears.
@@ -208,11 +211,13 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
           'div',
           { class: 'btn-row' },
           failed
-            ? h('a', { class: 'btn', href: `#/${mode.id}` }, 'All levels')
+            ? h('a', { class: 'btn', href: backHref }, mode.sandbox ? 'Edit graph' : 'All levels')
             : h('button', { class: 'btn', onclick: restart }, 'Retry'),
           failed
             ? h('button', { class: 'btn primary', onclick: restart }, 'Try again')
-            : h('a', { class: 'btn primary', href: hasNext ? `#/${mode.id}/${index + 2}` : `#/${mode.id}` }, hasNext ? 'Next level' : 'All levels'),
+            : mode.sandbox
+              ? h('a', { class: 'btn primary', href: backHref }, 'Edit graph')
+              : h('a', { class: 'btn primary', href: hasNext ? `#/${mode.id}/${index + 2}` : `#/${mode.id}` }, hasNext ? 'Next level' : 'All levels'),
         ),
       ),
     );

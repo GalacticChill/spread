@@ -30,6 +30,8 @@ export default defineConfig({
       },
     }),
   ],
+  // The solver worker imports shared modules, so build it as an ES module.
+  worker: { format: 'es' },
   test: {
     include: ['tests/**/*.test.ts'],
   },

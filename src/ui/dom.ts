@@ -35,6 +35,8 @@ const ICONS = {
   restart: 'M4 12a8 8 0 108-8 8 8 0 00-6 2.7M4 4v5h5',
   help: 'M9.5 9a2.5 2.5 0 115 .5c0 1.5-2.5 2-2.5 3.5M12 17.5v.01',
   lock: 'M7 11V8a5 5 0 0110 0v3M6 11h12v9H6z',
+  more: 'M5 12h.01M12 12h.01M19 12h.01',
+  trash: 'M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13',
 } as const;
 
 export function icon(name: keyof typeof ICONS): SVGSVGElement {

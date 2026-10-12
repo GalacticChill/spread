@@ -13,6 +13,9 @@ import type { ModeInfo } from './modes';
 import { gameShell } from './shell';
 import { progressFor } from './storage';
 
+/** Targets are NaN for sandbox graphs too large to solve; show them as "?". */
+const fmt = (n: number) => (Number.isFinite(n) ? String(n) : '?');
+
 export function gameScreen(mode: ModeInfo, index: number) {
   const level = mode.levels[index];
   switch (level.mode) {
@@ -51,7 +54,7 @@ function spreadGame(mode: ModeInfo, index: number, level: SpreadLevel | Threshol
     isFinished: isComplete,
     stats: [
       { label: 'Moves', value: (s) => String(s.moves), dim: (s) => s.moves > level.par },
-      { label: 'Par', value: () => String(level.par) },
+      { label: 'Par', value: () => fmt(level.par) },
       { label: 'Best', value: () => String(progressFor(level.id)?.best ?? '–') },
     ],
     result: (s) => {
@@ -61,7 +64,7 @@ function spreadGame(mode: ModeInfo, index: number, level: SpreadLevel | Threshol
         lowerIsBetter: true,
         stars: starsFor(s.moves, p),
         title: s.moves < p ? 'Better than par!' : s.moves === p ? 'Optimal' : s.moves === p + 1 ? 'One move off par' : 'Solved',
-        detail: `${s.moves} moves · par ${p}`,
+        detail: `${s.moves} moves · par ${fmt(p)}`,
       };
     },
   });
@@ -92,7 +95,7 @@ function containmentGame(mode: ModeInfo, index: number, level: ContainmentLevel)
     isFinished: (s) => !canSpread(graph, s, adj),
     stats: [
       { label: 'Saved', value: (s) => String(savedCount(s)), dim: (s) => savedCount(s) < best },
-      { label: 'Goal', value: () => String(best) },
+      { label: 'Goal', value: () => fmt(best) },
       { label: 'Shields', value: (s) => `${shieldsLeft(s)}/${k}`, dim: (s) => shieldsLeft(s) === 0, nudgeOnReject: true },
     ],
     result: (s) => {
@@ -102,7 +105,7 @@ function containmentGame(mode: ModeInfo, index: number, level: ContainmentLevel)
         lowerIsBetter: false,
         stars: containmentStars(saved, best),
         title: saved >= best ? 'Optimal' : saved === best - 1 ? 'One node short' : 'Contained',
-        detail: `Saved ${saved} of ${n} · best possible ${best}`,
+        detail: `Saved ${saved} of ${n} · best possible ${fmt(best)}`,
       };
     },
     setupBoard: (board) => board.mark(sources, 'source'),
@@ -126,7 +129,7 @@ function rivalGame(mode: ModeInfo, index: number, level: RivalLevel) {
     isFinished: (s) => rival.isOver(graph, s, adj),
     stats: [
       { label: 'Orange', value: (s) => String(rival.orangeCount(s)) },
-      { label: 'Goal', value: () => String(best) },
+      { label: 'Goal', value: () => fmt(best) },
       { label: 'Taps', value: (s) => String(s.tapsLeft), dim: (s) => s.tapsLeft === 0, nudgeOnReject: true },
     ],
     result: (s) => {
@@ -136,7 +139,7 @@ function rivalGame(mode: ModeInfo, index: number, level: RivalLevel) {
         lowerIsBetter: false,
         stars: rival.rivalStars(n, best),
         title: n >= best ? 'Optimal' : n === best - 1 ? 'One node short' : 'Done',
-        detail: `${n} orange · best possible ${best}`,
+        detail: `${n} orange · best possible ${fmt(best)}`,
       };
     },
     setupBoard: (board) => board.mark(blue, 'source'),
@@ -225,7 +228,7 @@ function wiringGame(mode: ModeInfo, index: number, level: WiringLevel) {
     isFinished: wiring.isSolved,
     stats: [
       { label: 'Links', value: (s) => `${s.added.length}/${p.budget}`, dim: (s) => s.added.length > best, nudgeOnReject: true },
-      { label: 'Par', value: () => String(best) },
+      { label: 'Par', value: () => fmt(best) },
       { label: 'Ticks', value: (s) => `${s.ticks}/${p.ticks}`, nudgeOnReject: true },
     ],
     result: (s) => {
@@ -235,7 +238,7 @@ function wiringGame(mode: ModeInfo, index: number, level: WiringLevel) {
         lowerIsBetter: true,
         stars: wiring.wiringStars(n, best),
         title: n <= best ? 'Optimal' : n === best + 1 ? 'One link over par' : 'Connected',
-        detail: `${n} new link${n === 1 ? '' : 's'} · par ${best}`,
+        detail: `${n} new link${n === 1 ? '' : 's'} · par ${fmt(best)}`,
       };
     },
     setupBoard: (board) => board.mark([p.seed], 'source'),

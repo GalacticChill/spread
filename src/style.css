@@ -337,11 +337,14 @@ a.level-tile:active {
 .board-wrap {
   flex: 1;
   min-height: 260px;
-  display: flex;
+  position: relative;
 }
 
+/* Absolutely positioned so the SVG's viewBox can't feed back into the layout size:
+   the board takes whatever space the flex column leaves. */
 .board {
-  flex: 1;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   touch-action: manipulation;
@@ -654,4 +657,279 @@ a.level-tile:active {
   75% {
     transform: translateX(4px);
   }
+}
+
+/* ---------- Sandbox ---------- */
+
+.sandbox-card {
+  margin-top: 18px;
+  grid-template-areas: 'title' 'tagline';
+  border-style: dashed;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.segmented {
+  flex: 1;
+  display: flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.seg {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.seg.active {
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.tool-hint {
+  min-height: 2.6em;
+  margin: 2px 0 0;
+}
+
+.editor {
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.editor-frame {
+  fill: rgba(255, 255, 255, 0.015);
+  stroke: var(--line);
+  stroke-dasharray: 3 6;
+}
+
+.node.mark-fire .dot,
+.node.mark-source .dot,
+.node.mark-seed .dot {
+  fill: var(--orange);
+  stroke: var(--orange);
+}
+
+.node.mark-blue .dot {
+  fill: var(--blue);
+  stroke: var(--blue);
+}
+
+.node.mark-fire .label,
+.node.mark-source .label,
+.node.mark-seed .label {
+  fill: #1a0d00;
+}
+
+/* Solver highlights in the editor: dashed white rings and dashed links. */
+.node.hinted .halo {
+  stroke: var(--white);
+  stroke-dasharray: 4 3;
+  opacity: 0.9;
+  transform: scale(1.55);
+}
+
+.hint-edge {
+  stroke: var(--white);
+  stroke-dasharray: 6 5;
+  stroke-width: 2.5;
+}
+
+.graph-stats {
+  margin: 6px 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.graph-stats .degrees {
+  font-size: 12px;
+  opacity: 0.8;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  margin-top: 10px;
+}
+
+.select,
+.text-input,
+.setting input[type='number'],
+.json {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.select {
+  padding-right: 8px;
+}
+
+.settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.setting input[type='number'] {
+  width: 72px;
+  font-variant-numeric: tabular-nums;
+}
+
+.setting.check input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--orange);
+}
+
+.solve-line {
+  min-height: 2.8em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--text);
+}
+
+.warn {
+  color: var(--text-dim);
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--orange);
+  animation: spin 0.8s linear infinite;
+  flex: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn.small {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.sandbox-actions {
+  margin-top: 4px;
+}
+
+.sandbox .board-wrap {
+  min-height: 200px;
+}
+
+.dialog {
+  text-align: left;
+}
+
+.dialog h2 {
+  text-align: center;
+}
+
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.save-row {
+  display: flex;
+  gap: 8px;
+}
+
+.save-row .text-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.saved-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 40vh;
+  overflow: auto;
+  display: grid;
+  gap: 6px;
+}
+
+.saved-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px 6px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.saved-name {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saved-name small {
+  color: var(--text-dim);
+}
+
+.json {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  resize: vertical;
 }

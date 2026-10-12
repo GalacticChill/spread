@@ -36,6 +36,12 @@ before changing course.
 - `src/core/rival.ts` / `rivalSolver.ts` — Mode 4 rules and optimal solver.
 - `src/core/origin.ts` — Mode 5 rules, observation, verification, `allExplanations`.
 - `src/core/wiring.ts` / `wiringSolver.ts` — Mode 6 rules and min-new-edges solver.
+- `src/core/sandbox.ts` — Sandbox document (graph + mode + marks + settings), editing
+  ops, generator specs, import/export parsing, `docToLevel`, and `solveDoc` (the single
+  entry point used by the worker and tests).
+- `src/core/stats.ts` — node/edge counts, degree sequence, components, diameter.
+- `src/workers/solver.worker.ts` — runs `solveDoc` off the main thread (Vite
+  `worker.format: 'es'`; the worker chunk is precached for offline use).
 - `src/core/families.ts` — generators for graph families with layouts (paths, cycles,
   stars, wheels, grids, trees incl. `layeredTree(parent[])`, clusters joined by bridges,
   Q3, Petersen), `withThresholds` and `normalize`.
@@ -50,6 +56,8 @@ before changing course.
   hint line, marker rings, added edges + drag/tap handlers, `tickIsFinal`, and a
   0-star result for a failed level (not saved).
 - `src/ui/modes.ts` — mode registry (title, tagline, rules card text, levels).
+- `src/ui/sandbox.ts`, `src/ui/editor.ts`, `src/ui/solverClient.ts` — Sandbox screen,
+  its editing canvas, and the cancellable worker client.
 - `src/ui/` also has the home/level-select screens, the SVG board (node colors:
   `none | orange | blue | gray | white`, optional number labels inside nodes, dynamic
   marker rings, player-added edges with drag-to-connect and tap-to-remove), storage, haptics, and the router (hash-based, so it
@@ -173,6 +181,28 @@ before changing course.
   unreached node v: the last new edge (x, y) on v's shortest path has y within T−1 hops
   of v in the current network, so try y in that ball and any x. Edge sets already
   tried are skipped. Brute-force tested against trying all edge subsets.
+
+## Sandbox (#/sandbox, card on the home screen)
+
+- Tools: **Draw** (tap empty space = add node; drag node→node = link; drag node→empty =
+  new linked node), **Move**, **Erase** (tap node or link), and a mode-specific **Mark**
+  tool (Fire / Blue / Source / Seed; in Threshold it cycles r = 1–4 on a node). Undo
+  (also Ctrl/Cmd+Z). Max 60 nodes. The editor canvas maps 0–1 onto a fixed square (no
+  auto-fit, so nodes don't jump while editing).
+- **Generate**: path, cycle, star, complete, complete bipartite, grid, hypercube Q1–Q5,
+  binary tree, Petersen, Erdős–Rényi G(n, p).
+- **Stats** line: nodes, edges, connected/components, diameter, degree sequence.
+- Mode picker + settings (Shields, Taps, Ticks, Timed, Links). **Solve** runs `solveDoc`
+  in the Web Worker with a spinner and **Cancel** (terminates the worker); results are
+  shown as a summary plus dashed rings on nodes / dashed links (Containment rings are
+  numbered by turn). Graphs over a solver's limit get a "too large to solve exactly"
+  note. **Play** solves first (cancellable) to get par/goal, then opens the shared game
+  shell at #/sandbox/play; if unsolvable, it plays with "?" as the target (1 star for
+  finishing). Sandbox plays never save progress; results offer Retry / Edit graph.
+- **File** menu (⋯): save under a name / open / delete (localStorage), Export (JSON +
+  Copy, falls back to selecting the text), Import (paste a sandbox doc, a level from
+  the game files, or a bare `{nodes, edges}` graph; positions outside 0–1 are rescaled),
+  New. The current graph autosaves on every edit.
 
 ## Levels
 
