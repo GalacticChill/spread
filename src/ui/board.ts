@@ -70,7 +70,17 @@ export class Board {
     const labels = opts.labels;
     graph.nodes.forEach((_, i) => {
       const label = labels?.[i] ? s('text', { class: 'label', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'aria-hidden': 'true' }, labels[i]) : null;
-      const g = s('g', { class: 'node' }, s('circle', { class: 'halo' }), s('circle', { class: 'dot' }), label);
+      // Glyphs make states readable without color: a bar on gray (blocked) nodes and a
+      // diamond on blue ones. CSS shows the right one for the node's state.
+      const g = s(
+        'g',
+        { class: 'node' },
+        s('circle', { class: 'halo' }),
+        s('circle', { class: 'dot' }),
+        s('path', { class: 'glyph glyph-bar' }),
+        s('path', { class: 'glyph glyph-diamond' }),
+        label,
+      );
       this.nodeEls.push(g);
       this.nodeLayer.append(g);
     });
@@ -216,7 +226,9 @@ export class Board {
         c.setAttribute('cy', String(y));
         c.setAttribute('r', String(r));
       }
-      const label = g.children[2];
+      g.querySelector('.glyph-bar')!.setAttribute('d', glyphBar(x, y, r));
+      g.querySelector('.glyph-diamond')!.setAttribute('d', glyphDiamond(x, y, r));
+      const label = g.querySelector('.label');
       if (label) {
         label.setAttribute('x', String(x));
         label.setAttribute('y', String(y));
@@ -349,4 +361,16 @@ export class Board {
     this.timers.forEach((t) => clearTimeout(t));
     this.timers = [];
   }
+}
+
+/** A short horizontal bar across a node (gray = blocked). */
+export function glyphBar(x: number, y: number, r: number): string {
+  const w = r * 0.5;
+  return `M${x - w} ${y}H${x + w}`;
+}
+
+/** A small diamond in a node (blue). */
+export function glyphDiamond(x: number, y: number, r: number): string {
+  const d = r * 0.42;
+  return `M${x} ${y - d}L${x + d} ${y}L${x} ${y + d}L${x - d} ${y}Z`;
 }

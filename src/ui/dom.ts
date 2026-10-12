@@ -35,6 +35,8 @@ const ICONS = {
   restart: 'M4 12a8 8 0 108-8 8 8 0 00-6 2.7M4 4v5h5',
   help: 'M9.5 9a2.5 2.5 0 115 .5c0 1.5-2.5 2-2.5 3.5M12 17.5v.01',
   lock: 'M7 11V8a5 5 0 0110 0v3M6 11h12v9H6z',
+  info: 'M12 3a9 9 0 110 18 9 9 0 010-18zM12 8v.01M11 12h1v4h1',
+  sliders: 'M4 7h9M17 7h3M4 17h3M11 17h9M15 5v4M9 15v4',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   trash: 'M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13',
 } as const;
@@ -57,4 +59,6 @@ export function starRow(earned: number, size = 16): SVGSVGElement {
   return svg;
 }
 
-export const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** True if the system asks for less motion, or the player turned animations off in Settings. */
+export const reducedMotion = () =>
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('reduce-motion');

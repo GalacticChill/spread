@@ -14,6 +14,8 @@ export interface ModeInfo {
   tagline: string;
   /** Short rules, one line each, for the first-time rules card. */
   rules: string[];
+  /** For the About screen: the real problem behind the mode, in one plain sentence. */
+  about: { problem: string; source: string; sentence: string };
   levels: Level[];
   /** Where Back goes (default: this mode's level list). */
   backHref?: string;
@@ -24,6 +26,7 @@ export interface ModeInfo {
 export const MODES: ModeInfo[] = [
   {
     id: 'spread',
+    about: { problem: 'Graph burning', source: 'Bonato, Janssen & Roshanbin, 2014', sentence: 'How quickly can a spreading fire consume a network if you may light one new node each round?' },
     title: 'Spread',
     tagline: 'Light every node.',
     rules: [
@@ -36,11 +39,12 @@ export const MODES: ModeInfo[] = [
   },
   {
     id: 'containment',
+    about: { problem: 'The firefighter problem', source: 'Hartnell, 1995', sentence: 'A fire spreads every turn and you can protect a few nodes in its path: how many can you save?' },
     title: 'Containment',
     tagline: 'Hold the line.',
     rules: [
-      'Orange starts on the ringed nodes.',
-      'Each turn, tap nodes to protect them, up to your Shields. Protected nodes turn gray and never catch.',
+      'Orange starts on the ringed nodes. Protected nodes are gray with a bar.',
+      'Each turn, tap nodes to protect them, up to your Shields. Protected nodes never catch.',
       'Tick: orange spreads to every unprotected neighbor.',
       'When orange can’t spread anymore, the game ends. Save as many nodes as you can.',
     ],
@@ -48,6 +52,7 @@ export const MODES: ModeInfo[] = [
   },
   {
     id: 'threshold',
+    about: { problem: 'Bootstrap percolation and target set selection', source: 'Chalupa, Leath & Reich, 1979', sentence: 'A node joins only once enough of its neighbors have, so the trick is choosing the few nodes that tip everything else.' },
     title: 'Threshold',
     tagline: 'Some nodes need convincing.',
     rules: [
@@ -59,18 +64,20 @@ export const MODES: ModeInfo[] = [
   },
   {
     id: 'rival',
+    about: { problem: 'Competitive diffusion', source: 'Alon, Feldman, Procaccia & Tennenholtz, 2010', sentence: 'Two influences spread through the same network at once, and nodes they reach at the same moment stay neutral.' },
     title: 'Rival',
     tagline: 'Outgrow the blue.',
     rules: [
-      'Blue starts on the ringed nodes and spreads on every tick.',
+      'Blue (marked with a diamond) starts on the ringed nodes and spreads on every tick.',
       'You have a few taps: each turns an uncolored node orange. Use them any time between ticks.',
-      'Tick: orange and blue both spread. A node reached by both at once turns gray.',
+      'Tick: orange and blue both spread. A node reached by both at once turns gray (with a bar).',
       'Colored nodes never change. Finish with as many orange nodes as you can.',
     ],
     levels: rivalLevels as Level[],
   },
   {
     id: 'origin',
+    about: { problem: 'Source identification', source: 'Shah & Zaman, 2011', sentence: 'Given a snapshot of who has been reached, work out where the spread started.' },
     title: 'Origin',
     tagline: 'Find where it started.',
     rules: [
@@ -83,6 +90,7 @@ export const MODES: ModeInfo[] = [
   },
   {
     id: 'wiring',
+    about: { problem: 'Network design', source: 'adding links to bound distances', sentence: 'Add as few new links as possible so that every node is within a few hops of the source.' },
     title: 'Wiring',
     tagline: 'Build the shortcut.',
     rules: [

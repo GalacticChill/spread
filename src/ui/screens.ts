@@ -31,7 +31,13 @@ export function homeScreen(): HTMLElement {
     h('span', { class: 'mode-title' }, 'Sandbox'),
     h('span', { class: 'mode-tagline' }, 'Build your own graph, then play or solve it.'),
   );
-  return h('main', { class: 'screen home' }, h('header', { class: 'home-head' }, logo(), h('h1', {}, 'Spread')), list, sandbox);
+  const corner = h(
+    'nav',
+    { class: 'home-corner', 'aria-label': 'More' },
+    h('a', { class: 'icon-btn', href: '#/about', 'aria-label': 'About' }, icon('info')),
+    h('a', { class: 'icon-btn', href: '#/settings', 'aria-label': 'Settings' }, icon('sliders')),
+  );
+  return h('main', { class: 'screen home' }, corner, h('header', { class: 'home-head' }, logo(), h('h1', {}, 'Spread')), list, sandbox);
 }
 
 /** Small abstract mark: a hub lighting its neighbors. */

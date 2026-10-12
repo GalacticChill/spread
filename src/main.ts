@@ -3,10 +3,11 @@
 
 import './style.css';
 import { gameScreen } from './ui/game';
+import { aboutScreen, settingsScreen } from './ui/info';
 import { getMode } from './ui/modes';
 import { homeScreen, levelSelectScreen, showRules } from './ui/screens';
 import { sandboxPlayScreen, sandboxScreen } from './ui/sandbox';
-import { hasSeenRules } from './ui/storage';
+import { hasSeenRules, loadSettings } from './ui/storage';
 
 const app = document.getElementById('app')!;
 let cleanup: (() => void) | undefined;
@@ -20,7 +21,15 @@ function route() {
   const mode = modeId ? getMode(modeId) : undefined;
   let screen: HTMLElement;
 
+  if (modeId === 'about' || modeId === 'settings') {
+    app.replaceChildren(modeId === 'about' ? aboutScreen() : settingsScreen());
+    document.title = `${modeId === 'about' ? 'About' : 'Settings'} · Spread`;
+    window.scrollTo(0, 0);
+    return;
+  }
+
   if (modeId === 'sandbox') {
+    document.title = 'Sandbox · Spread';
     const view = levelNum === 'play' ? sandboxPlayScreen() : sandboxScreen();
     // Nothing to play (e.g. after a reload): back to the editor.
     if (!view) {
@@ -48,11 +57,15 @@ function route() {
     cleanup = game.destroy;
   }
 
+  document.title = mode ? (levelNum ? `${mode.title} ${levelNum} · Spread` : `${mode.title} · Spread`) : 'Spread';
   app.replaceChildren(screen);
   window.scrollTo(0, 0);
   // First time a mode is opened, show its rules card.
   if (mode && !hasSeenRules(mode.id)) showRules(mode);
 }
+
+// The "Reduce motion" setting works through a class on <html> (see style.css and dom.ts).
+document.documentElement.classList.toggle('reduce-motion', loadSettings().reduceMotion);
 
 window.addEventListener('hashchange', route);
 route();

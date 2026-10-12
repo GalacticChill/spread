@@ -3,8 +3,12 @@
   --bg: #0c1016;
   --surface: #151b23;
   --surface-2: #1c242f;
-  --line: #2a3441;
-  --node: #5a6878;
+  /* Decorative borders (cards, frames). */
+  --line: #3a4656;
+  /* Graph edges and form-control borders: at least 3:1 against the background. */
+  --edge: #5a6676;
+  /* Uncolored node outlines: 4.9:1. */
+  --node: #748294;
   --text: #e7ecf2;
   --text-dim: #8a97a8;
   --orange: #ff8a1f;
@@ -154,7 +158,7 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10vh 0 6vh;
+  padding: clamp(20px, 4vh, 80px) 0 clamp(14px, 3vh, 48px);
 }
 
 .home-head h1 {
@@ -198,8 +202,8 @@ button {
   grid-template-areas: 'title progress' 'tagline progress';
   align-items: center;
   gap: 2px 12px;
-  min-height: 72px;
-  padding: 14px 18px;
+  min-height: 64px;
+  padding: 12px 18px;
   border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--line);
@@ -354,7 +358,7 @@ a.level-tile:active {
 }
 
 .edge {
-  stroke: var(--line);
+  stroke: var(--edge);
   stroke-width: 2;
   stroke-linecap: round;
   transition: stroke 0.3s;
@@ -641,6 +645,14 @@ a.level-tile:active {
   }
 }
 
+/* Same, when "Reduce motion" is on in Settings. */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  transition-duration: 0.01ms !important;
+}
+
 /* Brief shake when a tap is rejected (e.g. no shields left this turn). */
 .stat.nudge {
   animation: nudge 0.32s ease-in-out;
@@ -786,7 +798,7 @@ a.level-tile:active {
   min-height: 44px;
   padding: 0 12px;
   border-radius: 12px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--edge);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -932,4 +944,178 @@ a.level-tile:active {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
   resize: vertical;
+}
+
+/* ---------- State glyphs (color is never the only signal) ---------- */
+
+.glyph {
+  display: none;
+  pointer-events: none;
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.node.gray .glyph-bar {
+  display: inline;
+}
+
+.node.blue .glyph-diamond,
+.node.mark-blue .glyph-diamond {
+  display: inline;
+  fill: var(--bg);
+  stroke: none;
+}
+
+/* ---------- Home corner, About, Settings ---------- */
+
+.home {
+  position: relative;
+}
+
+.home-corner {
+  position: absolute;
+  top: max(8px, env(safe-area-inset-top));
+  right: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.prose {
+  max-width: 520px;
+  margin: 8px auto 24px;
+  line-height: 1.5;
+}
+
+.lead {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.about-list {
+  list-style: none;
+  margin: 18px 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.about-list li {
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.about-list p {
+  margin: 6px 0 0;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.about-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.about-mode {
+  font-weight: 600;
+  color: var(--orange);
+}
+
+.about-problem {
+  font-weight: 600;
+}
+
+.about-list .about-source {
+  font-size: 12px;
+  font-style: italic;
+}
+
+.fine {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.setting-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.setting-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setting-text small {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* A plain checkbox styled as a switch. */
+.setting-row input {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 50px;
+  height: 30px;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--edge);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.setting-row input::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--node);
+  transition: transform 0.2s, background 0.2s;
+}
+
+.setting-row input:checked {
+  background: var(--orange);
+  border-color: var(--orange);
+}
+
+.setting-row input:checked::after {
+  transform: translateX(20px);
+  background: #1a0d00;
+}
+
+.danger-zone {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.btn.danger {
+  border-color: var(--edge);
+  color: var(--text);
 }

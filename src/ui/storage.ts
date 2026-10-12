@@ -92,3 +92,33 @@ export function saveGraph(name: string, doc: SandboxDoc) {
 export function deleteSavedGraph(name: string) {
   write(SANDBOX_SAVED_KEY, savedGraphs().filter((g) => g.name !== name));
 }
+
+// ---------- App settings ----------
+
+const SETTINGS_KEY = 'spread:settings:v1';
+
+export interface AppSettings {
+  haptics: boolean;
+  /** Turn off animations even if the system setting doesn't ask for it. */
+  reduceMotion: boolean;
+}
+
+const DEFAULT_APP_SETTINGS: AppSettings = { haptics: true, reduceMotion: false };
+
+export function loadSettings(): AppSettings {
+  return { ...DEFAULT_APP_SETTINGS, ...read<Partial<AppSettings>>(SETTINGS_KEY, {}) };
+}
+
+export function saveSettings(settings: AppSettings) {
+  write(SETTINGS_KEY, settings);
+}
+
+/** Clear stars, best scores and "rules seen" flags. Sandbox graphs and settings stay. */
+export function resetProgress() {
+  try {
+    localStorage.removeItem(PROGRESS_KEY);
+    localStorage.removeItem(RULES_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}

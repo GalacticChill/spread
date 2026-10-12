@@ -69,13 +69,14 @@ write('spread.json', spreadLevels);
 
 // ---------- Mode 2: Containment (firefighter problem). ----------
 
-// Center cluster with three outer clusters, each behind a one-node bridge.
+// A center triangle with three outer triangles, each behind a one-node bridge.
 const clusterStar = bridgedClusters(
   [
-    { size: 5, cx: 0.5, cy: 0.5, r: 0.16 },
-    { size: 4, cx: 0.5, cy: -0.1, r: 0.13 },
-    { size: 4, cx: 1.02, cy: 0.8, r: 0.13 },
-    { size: 4, cx: -0.02, cy: 0.8, r: 0.13 },
+    // One cluster above, two below: taller than wide, so it fits a portrait phone.
+    { size: 3, cx: 0.5, cy: 0.5, r: 0.15 },
+    { size: 3, cx: 0.5, cy: -0.2, r: 0.15 },
+    { size: 3, cx: 0.85, cy: 1.106, r: 0.15 },
+    { size: 3, cx: 0.15, cy: 1.106, r: 0.15 },
   ],
   [
     [0, 1, 1],
@@ -213,17 +214,17 @@ write('origin.json', originLevels);
 
 const noEdges = (g: Graph): Graph => ({ nodes: g.nodes, edges: [] });
 const withoutLastEdge = (g: Graph): Graph => ({ nodes: g.nodes, edges: g.edges.slice(0, -1) });
-// Seed alone in the middle, three separate paths of 4 around it.
-const threePaths = (() => {
-  const s = spider(3, 5);
-  // Drop the center's links and each leg's first node: three loose P4s around a lone seed.
-  const keep = s.nodes.map((_, i) => i).filter((i) => i === 0 || (i - 1) % 5 !== 0);
-  const index = new Map(keep.map((v, i) => [v, i]));
-  return {
-    nodes: keep.map((v, i) => ({ ...s.nodes[v], id: `n${i}` })),
-    edges: s.edges.filter(([a, b]) => index.has(a) && index.has(b) && a !== 0).map(([a, b]) => [index.get(a)!, index.get(b)!] as [number, number]),
-  };
-})();
+// A lone seed above three separate paths of 3 (drawn as columns).
+const threePaths: Graph = {
+  nodes: [
+    { id: 'n0', x: 0.5, y: 0 },
+    ...[0.15, 0.5, 0.85].flatMap((x, c) => [0.3, 0.6, 0.9].map((y, r) => ({ id: `n${1 + c * 3 + r}`, x, y }))),
+  ],
+  edges: [0, 1, 2].flatMap((c) => [
+    [1 + c * 3, 2 + c * 3],
+    [2 + c * 3, 3 + c * 3],
+  ]) as [number, number][],
+};
 
 // [name, graph with fixed edges, seed, T, extra budget over the optimum]
 const wiringSpecs: [string, Graph, number, number, number][] = [

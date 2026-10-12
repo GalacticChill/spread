@@ -1,6 +1,10 @@
 // Light haptic feedback where supported (Android Chrome; iOS Safari ignores vibrate).
+// Can be turned off in Settings.
+
+import { loadSettings } from './storage';
 
 function buzz(pattern: number | number[]) {
+  if (!loadSettings().haptics) return;
   try {
     if ('vibrate' in navigator) navigator.vibrate(pattern);
   } catch {

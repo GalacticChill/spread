@@ -10,8 +10,11 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
+        id: './',
         name: 'Spread',
         short_name: 'Spread',
+        lang: 'en',
+        categories: ['games', 'education'],
         description: 'Puzzles about how things spread through graphs.',
         theme_color: '#0c1016',
         background_color: '#0c1016',
@@ -27,6 +30,8 @@ export default defineConfig({
       workbox: {
         // Precache everything (levels are bundled into the JS), so the app works fully offline.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        // iOS reads launch screens itself at startup; no need to cache 40 large PNGs.
+        globIgnores: ['splash/**'],
       },
     }),
   ],

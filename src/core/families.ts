@@ -15,9 +15,13 @@ function ring(count: number, r: number, cx = 0.5, cy = 0.5, offset = 0): [number
   });
 }
 
-/** Path on n nodes, drawn vertically (portrait screens have more height). */
+/**
+ * Path on n nodes, drawn vertically (portrait screens have more height). Long paths
+ * zigzag slightly so neighbors stay far enough apart to tap on small phones.
+ */
 export function path(n: number): Graph {
-  const nodes = Array.from({ length: n }, (_, i) => node(i, 0.5, n === 1 ? 0.5 : i / (n - 1)));
+  const zig = n >= 9 ? 0.06 : 0;
+  const nodes = Array.from({ length: n }, (_, i) => node(i, 0.5 + (i % 2 ? zig : -zig), n === 1 ? 0.5 : i / (n - 1)));
   const edges = Array.from({ length: n - 1 }, (_, i) => [i, i + 1] as [number, number]);
   return { nodes, edges };
 }
@@ -67,7 +71,9 @@ export function binaryTree(levels: number): Graph {
     const depth = Math.floor(Math.log2(i + 1));
     const posInRow = i + 1 - 2 ** depth;
     const x = (posInRow + 0.5) / 2 ** depth;
-    nodes.push(node(i, x, depth / Math.max(1, levels - 1)));
+    // With 8+ leaves, alternate leaves sit a little lower so they aren't crammed in one row.
+    const stagger = depth === levels - 1 && levels >= 4 && posInRow % 2 ? 0.12 : 0;
+    nodes.push(node(i, x, depth / Math.max(1, levels - 1) + stagger));
     if (i > 0) edges.push([Math.floor((i - 1) / 2), i]);
   }
   return { nodes, edges };

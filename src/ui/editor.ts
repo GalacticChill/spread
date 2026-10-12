@@ -4,6 +4,7 @@
 
 import type { Graph } from '../core/graph';
 import { s } from './dom';
+import { glyphDiamond } from './board';
 import { segmentDistance } from './geometry';
 
 export type Tool = 'draw' | 'move' | 'erase' | 'mark';
@@ -99,6 +100,7 @@ export class GraphEditor {
         { class: cls },
         s('circle', { class: 'halo', cx: x, cy: y, r: NODE_R }),
         s('circle', { class: 'dot', cx: x, cy: y, r: NODE_R }),
+        s('path', { class: 'glyph glyph-diamond', d: glyphDiamond(x, y, NODE_R) }),
         r ? s('text', { class: 'label', x, y, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 13 }, r) : null,
       );
     });

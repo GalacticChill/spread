@@ -13,7 +13,12 @@ before changing course.
 
 - **Vite + TypeScript, no UI framework.** Rendering in **SVG** (built with DOM APIs).
 - **vite-plugin-pwa** generates the manifest and service worker. The app must work
-  **fully offline** (all assets and level data precached; no runtime network calls).
+  **fully offline** (all assets, level data and the solver worker precached; no runtime
+  network calls).
+- Icons and iOS launch screens are generated from `public/icon.svg` by `npm run icons`
+  (`pwa-assets.config.ts`) and committed. The splash `<link>` tags in `index.html` come
+  from that command's output; `public/splash/` is excluded from the precache.
+  Theme and background color: `#0c1016`.
 - Vite `base` is `/spread/` (the repo name) for GitHub Pages. Never use absolute
   paths like `/foo.png` in code; use `import.meta.env.BASE_URL` or relative imports.
 - GitHub Actions workflow (`.github/workflows/deploy.yml`) runs tests, builds, and deploys
@@ -67,8 +72,9 @@ before changing course.
 
 - **Purely abstract**: nodes are circles, edges are lines. No people, plants, fires,
   or illustrations, ever.
-- Dark, calm background (near-black slate). Uncolored nodes are a muted outline.
-  **Orange `#FF8A1F`** is the active state. Later modes add **blue**, **gray**
+- Dark, calm background (near-black slate). Uncolored nodes are a muted outline
+  (`--node`, 4.9:1); edges use `--edge` (≥ 3:1 against the background, since they carry
+  the puzzle). **Orange `#FF8A1F`** is the active state. Later modes add **blue**, **gray**
   (immune/blocked) and **white** (selected). Colors live as CSS custom properties in
   `src/style.css`.
 - Minimal text, clean system sans-serif. Portrait phone layout first; must also look
@@ -78,10 +84,20 @@ before changing course.
   are "wrong" (Origin's bad guess, Wiring's unreached nodes); a faint solid ring marks
   where something started (fire sources, blue starts, Wiring's seed). Short, smooth animations when nodes change color; on each tick the
   spread visibly **ripples outward along edges**. Light haptics via `navigator.vibrate`
-  where supported. Respect `prefers-reduced-motion`.
-- Screens: **home** (mode list), **level select** (grid with star ratings), **game**,
-  and a short **rules card** shown the first time each mode is opened (re-openable
-  with "?").
+  where supported. Respect `prefers-reduced-motion` **and** the in-app "Reduce motion"
+  setting (class `reduce-motion` on `<html>`; `reducedMotion()` in `dom.ts` checks both).
+- **Color is never the only signal**: gray (blocked/contested) nodes carry a bar glyph,
+  blue nodes a diamond glyph, selected nodes a white ring, "wrong" nodes a dashed ring.
+  Keep this for any new state.
+- Screens: **home** (mode list + Sandbox, with About and Settings icons top right),
+  **level select** (grid with star ratings), **game**, a short **rules card** shown the
+  first time each mode is opened (re-openable with "?"), **About** (#/about: the real
+  problem behind each mode, from `about` in the mode registry), and **Settings**
+  (#/settings: haptics, reduce motion, reset progress with confirmation).
+- Layout must fit without scrolling on game/sandbox screens down to 360×640, and every
+  level must keep neighboring nodes ≥ 44px apart at 360×640 (long paths zigzag, big
+  binary trees stagger their leaves; check with the board's layout math when adding
+  levels).
 
 ## Data model
 

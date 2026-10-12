@@ -1,14 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="0" fill="#0c1016"/>
-  <g stroke-width="14" stroke-linecap="round">
-    <line x1="256" y1="276" x2="256" y2="128" stroke="#ff8a1f" stroke-opacity="0.45"/>
-    <line x1="256" y1="276" x2="384" y2="350" stroke="#ff8a1f" stroke-opacity="0.45"/>
-    <line x1="256" y1="276" x2="128" y2="350" stroke="#2a3441"/>
+  <!-- Spread app icon: four connected nodes, one of them orange. -->
+  <rect width="512" height="512" rx="112" fill="#0c1016"/>
+  <g stroke="#5a6878" stroke-width="16" stroke-linecap="round">
+    <line x1="256" y1="170" x2="146" y2="300"/>
+    <line x1="256" y1="170" x2="366" y2="300"/>
+    <line x1="256" y1="170" x2="256" y2="372"/>
+    <line x1="146" y1="300" x2="256" y2="372"/>
+    <line x1="366" y1="300" x2="256" y2="372"/>
   </g>
-  <g stroke-width="14">
-    <circle cx="256" cy="276" r="38" fill="#ff8a1f" stroke="#ff8a1f"/>
-    <circle cx="256" cy="128" r="30" fill="#ff8a1f" stroke="#ff8a1f"/>
-    <circle cx="384" cy="350" r="30" fill="#ff8a1f" stroke="#ff8a1f"/>
-    <circle cx="128" cy="350" r="30" fill="#0c1016" stroke="#5a6878"/>
+  <g stroke-width="18">
+    <circle cx="146" cy="300" r="40" fill="#0c1016" stroke="#8a97a8"/>
+    <circle cx="366" cy="300" r="40" fill="#0c1016" stroke="#8a97a8"/>
+    <circle cx="256" cy="372" r="40" fill="#0c1016" stroke="#8a97a8"/>
+    <circle cx="256" cy="170" r="48" fill="#ff8a1f" stroke="#ff8a1f"/>
   </g>
 </svg>
