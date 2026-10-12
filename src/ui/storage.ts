@@ -36,12 +36,15 @@ export function progressFor(levelId: string): LevelProgress | undefined {
   return allProgress()[levelId];
 }
 
-/** Save a finished game; keeps the best (lowest) score. Returns true if it's a new best. */
-export function recordResult(levelId: string, moves: number, stars: number): boolean {
+/**
+ * Save a finished game, keeping the best score (lowest moves in Spread, most nodes
+ * saved in Containment). Returns true if it's a new best.
+ */
+export function recordResult(levelId: string, score: number, stars: number, lowerIsBetter: boolean): boolean {
   const all = allProgress();
   const prev = all[levelId];
-  if (prev && prev.best <= moves) return false;
-  all[levelId] = { best: moves, stars: Math.max(stars, prev?.stars ?? 0) };
+  if (prev && (lowerIsBetter ? prev.best <= score : prev.best >= score)) return false;
+  all[levelId] = { best: score, stars: Math.max(stars, prev?.stars ?? 0) };
   write(PROGRESS_KEY, all);
   return true;
 }

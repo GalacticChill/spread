@@ -176,3 +176,86 @@ export function normalize(graph: Graph): Graph {
     edges: graph.edges.map(([a, b]) => [a, b] as [number, number]),
   };
 }
+
+/**
+ * Rooted tree from a parent array (parent[0] = -1 for the root), drawn top-down:
+ * leaves are spaced evenly and each parent sits centered over its children.
+ */
+export function layeredTree(parent: number[]): Graph {
+  const n = parent.length;
+  const children: number[][] = parent.map(() => []);
+  const edges: [number, number][] = [];
+  parent.forEach((p, i) => {
+    if (p >= 0) {
+      children[p].push(i);
+      edges.push([p, i]);
+    }
+  });
+  const depth = new Array<number>(n).fill(0);
+  const x = new Array<number>(n).fill(0);
+  let nextLeaf = 0;
+  const place = (v: number, d: number) => {
+    depth[v] = d;
+    if (children[v].length === 0) {
+      x[v] = nextLeaf++;
+      return;
+    }
+    for (const c of children[v]) place(c, d + 1);
+    x[v] = (x[children[v][0]] + x[children[v][children[v].length - 1]]) / 2;
+  };
+  place(0, 0);
+  const maxDepth = Math.max(1, ...depth);
+  const maxX = Math.max(1, nextLeaf - 1);
+  return { nodes: x.map((xi, i) => node(i, xi / maxX, depth[i] / maxDepth)), edges };
+}
+
+export interface ClusterSpec {
+  /** Number of nodes in this complete cluster. */
+  size: number;
+  cx: number;
+  cy: number;
+  r: number;
+}
+
+/**
+ * Dense clusters (complete graphs drawn as small polygons) joined by bridge paths.
+ * Each bridge [a, b, length] joins the vertex of cluster a closest to cluster b with
+ * the vertex of cluster b closest to cluster a, through `length` intermediate nodes.
+ * Node order: all cluster nodes (cluster by cluster), then bridge nodes.
+ */
+export function bridgedClusters(clusters: ClusterSpec[], bridges: [number, number, number][]): Graph {
+  const nodes: GraphNode[] = [];
+  const edges: [number, number][] = [];
+  const members: number[][] = [];
+  for (const c of clusters) {
+    // Point one vertex at each neighboring cluster when possible: rotate the polygon
+    // so vertex 0 faces the first cluster this one is bridged to.
+    const partner = bridges.find(([a, b]) => clusters[a] === c || clusters[b] === c);
+    let offset = 0;
+    if (partner) {
+      const other = clusters[clusters[partner[0]] === c ? partner[1] : partner[0]];
+      offset = Math.atan2(other.cy - c.cy, other.cx - c.cx) + Math.PI / 2;
+    }
+    const ids = ring(c.size, c.r, c.cx, c.cy, offset).map(([x, y]) => {
+      nodes.push(node(nodes.length, x, y));
+      return nodes.length - 1;
+    });
+    members.push(ids);
+    edges.push(...allPairs(ids));
+  }
+  const closest = (from: number, to: ClusterSpec) =>
+    members[from].reduce((best, v) => (Math.hypot(nodes[v].x - to.cx, nodes[v].y - to.cy) < Math.hypot(nodes[best].x - to.cx, nodes[best].y - to.cy) ? v : best));
+  for (const [a, b, length] of bridges) {
+    const start = closest(a, clusters[b]);
+    const end = closest(b, clusters[a]);
+    let prev = start;
+    for (let i = 1; i <= length; i++) {
+      const t = i / (length + 1);
+      nodes.push(node(nodes.length, nodes[start].x + (nodes[end].x - nodes[start].x) * t, nodes[start].y + (nodes[end].y - nodes[start].y) * t));
+      edges.push([prev, nodes.length - 1]);
+      prev = nodes.length - 1;
+    }
+    edges.push([prev, end]);
+  }
+  return { nodes, edges };
+}

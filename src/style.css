@@ -393,6 +393,28 @@ a.level-tile:active {
   stroke: var(--orange);
 }
 
+.node.gray .dot {
+  fill: var(--gray);
+  stroke: var(--gray);
+}
+
+.node.white .dot {
+  fill: rgba(244, 246, 249, 0.18);
+  stroke: var(--white);
+  stroke-width: 2.5;
+}
+
+.node.gray .halo,
+.node.white .halo {
+  stroke: var(--white);
+}
+
+/* Nodes that started orange get a faint outer ring so the fire's origin stays visible. */
+.node.source .halo {
+  opacity: 0.35;
+  transform: scale(1.45);
+}
+
 .controls {
   display: flex;
   align-items: center;
@@ -548,5 +570,23 @@ a.level-tile:active {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Brief shake when a tap is rejected (e.g. no shields left this turn). */
+.stat.nudge {
+  animation: nudge 0.32s ease-in-out;
+}
+
+.stat.nudge .stat-value {
+  color: var(--white);
+}
+
+@keyframes nudge {
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
   }
 }

@@ -9,8 +9,11 @@ const RIPPLE_MS = 260;
 /** Largest distance between the two closest nodes (px), so tiny graphs don't sprawl. */
 const MAX_GAP = 130;
 
+/** How a node is drawn. Orange = active; gray = protected/blocked; white = selected. */
+export type NodeColor = 'none' | 'orange' | 'gray' | 'white';
+
 export interface BoardUpdate {
-  orange: readonly boolean[];
+  colors: readonly NodeColor[];
   /** 'tick' animates `paths` as pulses along edges; 'tap' pops the tapped node. */
   animate?: 'tap' | 'tick' | 'none';
   paths?: [number, number][];
@@ -26,7 +29,7 @@ export class Board {
   private nodeEls: SVGGElement[] = [];
   private px: [number, number][] = [];
   private hitRadius = 24;
-  private shown: boolean[] = [];
+  private shown: NodeColor[] = [];
   private timers: number[] = [];
   private observer: ResizeObserver;
 
@@ -45,7 +48,7 @@ export class Board {
       this.nodeEls.push(g);
       this.nodeLayer.append(g);
     });
-    this.shown = graph.nodes.map(() => false);
+    this.shown = graph.nodes.map(() => 'none');
 
     // Hit-test by nearest node instead of the drawn circle, so every node has a
     // generous (≥ 44px) target even when the circle itself is small.
@@ -131,7 +134,7 @@ export class Board {
   }
 
   /** Show a new state. Pending animations from a previous update are finished instantly. */
-  update({ orange, animate = 'none', paths = [], tapped }: BoardUpdate) {
+  update({ colors, animate = 'none', paths = [], tapped }: BoardUpdate) {
     this.clearTimers();
     const motion = animate !== 'none' && !reducedMotion();
 
@@ -139,19 +142,24 @@ export class Board {
       // Ripple: a pulse travels along each edge, then the target node lights up.
       for (const [from, to] of paths) this.pulse(from, to);
       const arriving = new Set(paths.map(([, to]) => to));
-      orange.forEach((on, i) => {
-        if (!arriving.has(i)) this.setNode(i, on, false);
+      colors.forEach((c, i) => {
+        if (!arriving.has(i)) this.setNode(i, c, false);
       });
       this.timers.push(
         window.setTimeout(() => {
-          for (const i of arriving) this.setNode(i, orange[i], true);
+          for (const i of arriving) this.setNode(i, colors[i], true);
           this.paintEdges();
         }, RIPPLE_MS * 0.85),
       );
     } else {
-      orange.forEach((on, i) => this.setNode(i, on, motion && i === tapped));
+      colors.forEach((c, i) => this.setNode(i, c, motion && i === tapped));
     }
     this.paintEdges();
+  }
+
+  /** Add a CSS class to some nodes (e.g. 'source' for where the fire started). */
+  mark(nodes: number[], cls: string) {
+    for (const i of nodes) this.nodeEls[i].classList.add(cls);
   }
 
   /** A celebratory wave across the whole graph when the puzzle is solved. */
@@ -169,12 +177,14 @@ export class Board {
     });
   }
 
-  private setNode(i: number, on: boolean, pop: boolean) {
+  private setNode(i: number, color: NodeColor, pop: boolean) {
     const g = this.nodeEls[i];
     const was = this.shown[i];
-    this.shown[i] = on;
-    g.classList.toggle('on', on);
-    if (pop && on && !was) {
+    this.shown[i] = color;
+    g.classList.toggle('on', color === 'orange');
+    g.classList.toggle('gray', color === 'gray');
+    g.classList.toggle('white', color === 'white');
+    if (pop && color !== 'none' && color !== was) {
       g.children[1].animate([{ transform: 'scale(0.6)' }, { transform: 'scale(1.18)' }, { transform: 'scale(1)' }], { duration: 280, easing: 'ease-out' });
       g.children[0].animate(
         [
@@ -188,7 +198,7 @@ export class Board {
 
   /** Edges between two orange nodes glow faintly. Based on what's currently shown. */
   private paintEdges() {
-    this.graph.edges.forEach(([a, b], i) => this.edgeEls[i].classList.toggle('on', this.shown[a] && this.shown[b]));
+    this.graph.edges.forEach(([a, b], i) => this.edgeEls[i].classList.toggle('on', this.shown[a] === 'orange' && this.shown[b] === 'orange'));
   }
 
   private pulse(from: number, to: number) {
