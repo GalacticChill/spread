@@ -23,9 +23,12 @@ import {
   withThresholds,
 } from '../src/core/families';
 import { solveContainment } from '../src/core/containmentSolver';
-import { validateLevel, type ContainmentLevel, type Level, type SpreadLevel, type ThresholdLevel } from '../src/core/level';
+import { validateLevel, type ContainmentLevel, type Level, type OriginLevel, type RivalLevel, type SpreadLevel, type ThresholdLevel, type WiringLevel } from '../src/core/level';
 import { solveSpread } from '../src/core/solver';
 import { solveThreshold } from '../src/core/thresholdSolver';
+import { allExplanations, observe } from '../src/core/origin';
+import { solveRival } from '../src/core/rivalSolver';
+import { solveWiring } from '../src/core/wiringSolver';
 
 const pad = (i: number) => String(i + 1).padStart(2, '0');
 
@@ -144,3 +147,103 @@ const thresholdLevels: ThresholdLevel[] = thresholdSpecs.map(([name, g], i) => {
   return { id: `threshold-${pad(i)}`, mode: 'threshold', name, graph, params: {}, par };
 });
 write('threshold.json', thresholdLevels);
+
+// ---------- Mode 4: Rival (competitive diffusion). ----------
+
+const rivalSpecs: [name: string, graph: Graph, blue: number[], budget: number][] = [
+  ['Path P7', path(7), [0], 1], // block blue at the source
+  ['Path P9', path(9), [4], 1], // blue in the middle: claim a side, don't race to a tie
+  ['Hub and spoke', star(6), [1], 1], // grab the hub
+  ['Wheel W8', wheel(8), [1], 1], // the hub again, but blue still gets its neighbors
+  ['Cycle C10', cycle(10), [0, 5], 2], // two blue fronts
+  ['Binary tree', binaryTree(4), [1], 2], // blue near the top: the root matters
+  ['Two clusters, one bridge', barbell(5, 1), [2], 1], // own the bottleneck
+  ['Grid 4×4', grid(4, 4), [0, 15], 2], // blue in two corners
+  ['Petersen graph', petersen(), [0], 2],
+  ['Grid 5×5', grid(5, 5), [6, 18], 2], // two blue fronts, two taps
+];
+
+const rivalLevels: RivalLevel[] = rivalSpecs.map(([name, g], i) => {
+  const [, , blue, budget] = rivalSpecs[i];
+  const graph = normalize(g);
+  const t0 = performance.now();
+  const { optimum, seeds } = solveRival(graph, blue, budget);
+  const ms = (performance.now() - t0).toFixed(0);
+  console.log(`rival-${pad(i)}  ${name.padEnd(28)} n=${String(graph.nodes.length).padStart(2)} budget=${budget}  optimum=${optimum}  taps=${JSON.stringify(seeds)}  ${ms}ms`);
+  return { id: `rival-${pad(i)}`, mode: 'rival', name, graph, params: { blue, budget }, optimum };
+});
+write('rival.json', rivalLevels);
+
+// ---------- Mode 5: Origin (source identification). ----------
+
+// [name, graph, hidden seeds, total ticks, timed, hidden ticks]
+const originSpecs: [string, Graph, number[], number, boolean, number][] = [
+  ['Path P7', path(7), [3], 1, false, 0], // the middle of the orange run
+  ['Cycle C10', cycle(10), [0], 2, false, 0],
+  ['Grid 5×5', grid(5, 5), [12], 1, false, 0], // the center of the plus
+  ['Petersen graph', petersen(), [0], 1, false, 0], // the one node next to all the others
+  ['Binary tree', binaryTree(4), [1], 1, false, 0],
+  ['Path P11', path(11), [2, 8], 1, false, 0], // two sources
+  ['Grid 5×5', grid(5, 5), [6, 18], 1, false, 0],
+  ['Grid 5×5', grid(5, 5), [0, 19], 2, false, 0], // overlapping diamonds
+  ['Grid 5×5, timed', grid(5, 5), [12], 3, true, 1], // 0 = already orange when watching began
+  ['Binary tree, timed', binaryTree(4), [3, 6], 3, true, 1],
+];
+
+const originLevels: OriginLevel[] = originSpecs.map(([name, g, seeds, ticks, timed, hidden], i) => {
+  const graph = normalize(g);
+  const obs = observe(graph, seeds, ticks, hidden, timed);
+  const explanations = allExplanations(graph, obs, seeds.length);
+  const orange = obs.times.filter((t) => t !== null).length;
+  console.log(
+    `origin-${pad(i)}  ${name.padEnd(28)} n=${String(graph.nodes.length).padStart(2)} s=${seeds.length} T=${ticks}${timed ? ` hidden=${hidden}` : ''}  orange=${orange}  explanations=${explanations.length} ${JSON.stringify(explanations.slice(0, 6))}`,
+  );
+  return {
+    id: `origin-${pad(i)}`,
+    mode: 'origin',
+    name,
+    graph,
+    params: { size: seeds.length, ticks, timed, hidden, guesses: 3, seeds },
+    explanations: explanations.length,
+  };
+});
+write('origin.json', originLevels);
+
+// ---------- Mode 6: Wiring (network design). ----------
+
+const noEdges = (g: Graph): Graph => ({ nodes: g.nodes, edges: [] });
+const withoutLastEdge = (g: Graph): Graph => ({ nodes: g.nodes, edges: g.edges.slice(0, -1) });
+// Seed alone in the middle, three separate paths of 4 around it.
+const threePaths = (() => {
+  const s = spider(3, 5);
+  // Drop the center's links and each leg's first node: three loose P4s around a lone seed.
+  const keep = s.nodes.map((_, i) => i).filter((i) => i === 0 || (i - 1) % 5 !== 0);
+  const index = new Map(keep.map((v, i) => [v, i]));
+  return {
+    nodes: keep.map((v, i) => ({ ...s.nodes[v], id: `n${i}` })),
+    edges: s.edges.filter(([a, b]) => index.has(a) && index.has(b) && a !== 0).map(([a, b]) => [index.get(a)!, index.get(b)!] as [number, number]),
+  };
+})();
+
+// [name, graph with fixed edges, seed, T, extra budget over the optimum]
+const wiringSpecs: [string, Graph, number, number, number][] = [
+  ['Path P5', path(5), 0, 2, 2], // one shortcut
+  ['Five loose nodes', noEdges(wheel(4)), 0, 1, 0], // T = 1: a star from the seed
+  ['Two clusters, no bridge', withoutLastEdge(barbell(4, 0)), 2, 2, 2],
+  ['Cycle C8', cycle(8), 0, 2, 2], // cut across
+  ['Path P9', path(9), 4, 2, 2],
+  ['Three loose paths', threePaths, 0, 3, 2], // connect each to the seed at the right spot
+  ['Cycle C12', cycle(12), 0, 2, 2],
+  ['Binary tree', binaryTree(4), 7, 3, 2], // seed at a leaf
+  ['Grid 4×4', grid(4, 4), 0, 3, 2], // seed in a corner
+];
+
+const wiringLevels: WiringLevel[] = wiringSpecs.map(([name, g, seed, ticks, slack], i) => {
+  const graph = normalize(g);
+  const t0 = performance.now();
+  const { optimum, edges } = solveWiring(graph, { seed, ticks });
+  const ms = (performance.now() - t0).toFixed(0);
+  console.log(`wiring-${pad(i)}  ${name.padEnd(28)} n=${String(graph.nodes.length).padStart(2)} T=${ticks}  optimum=${optimum}  edges=${JSON.stringify(edges)}  ${ms}ms`);
+  return { id: `wiring-${pad(i)}`, mode: 'wiring', name, graph, params: { seed, ticks, budget: optimum + slack }, optimum };
+});
+write('wiring.json', wiringLevels);

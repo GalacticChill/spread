@@ -3,7 +3,10 @@
 import type { Level, ModeId } from '../core/level';
 import containmentLevels from '../levels/containment.json';
 import spreadLevels from '../levels/spread.json';
+import originLevels from '../levels/origin.json';
+import rivalLevels from '../levels/rival.json';
 import thresholdLevels from '../levels/threshold.json';
+import wiringLevels from '../levels/wiring.json';
 
 export interface ModeInfo {
   id: ModeId;
@@ -49,6 +52,41 @@ export const MODES: ModeInfo[] = [
       'Light the whole graph in as few moves as you can. Match par for three stars.',
     ],
     levels: thresholdLevels as Level[],
+  },
+  {
+    id: 'rival',
+    title: 'Rival',
+    tagline: 'Outgrow the blue.',
+    rules: [
+      'Blue starts on the ringed nodes and spreads on every tick.',
+      'You have a few taps: each turns an uncolored node orange. Use them any time between ticks.',
+      'Tick: orange and blue both spread. A node reached by both at once turns gray.',
+      'Colored nodes never change. Finish with as many orange nodes as you can.',
+    ],
+    levels: rivalLevels as Level[],
+  },
+  {
+    id: 'origin',
+    title: 'Origin',
+    tagline: 'Find where it started.',
+    rules: [
+      'You see the result of a spread: the orange nodes after a number of ticks.',
+      'Tap the hidden sources (you’re told how many), then Check.',
+      'Any sources that would produce exactly this pattern count.',
+      'A wrong guess rings the nodes it gets wrong. Guesses are limited.',
+    ],
+    levels: originLevels as Level[],
+  },
+  {
+    id: 'wiring',
+    title: 'Wiring',
+    tagline: 'Build the shortcut.',
+    rules: [
+      'Drag from node to node to add a link. Tap a link you added to remove it.',
+      'Tick runs a test spread from the ringed node.',
+      'Reach every node within the tick limit, using as few new links as possible.',
+    ],
+    levels: wiringLevels as Level[],
   },
 ];
 

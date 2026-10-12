@@ -421,6 +421,59 @@ a.level-tile:active {
   fill: #1a0d00;
 }
 
+.node.blue .dot {
+  fill: var(--blue);
+  stroke: var(--blue);
+}
+
+.node.blue .halo {
+  stroke: var(--blue);
+}
+
+.edge.blue {
+  stroke: rgba(74, 157, 255, 0.35);
+}
+
+.pulse.blue {
+  stroke: var(--blue);
+}
+
+.edge.added {
+  stroke: var(--white);
+  stroke-opacity: 0.75;
+  stroke-width: 2.5;
+}
+
+.edge.added.on {
+  stroke: var(--orange);
+  stroke-opacity: 0.6;
+}
+
+.drag-line {
+  stroke: var(--white);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 6;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+/* A dashed white ring: a node a guess got wrong, or one a test run didn't reach. */
+.node.wrong .halo {
+  stroke: var(--white);
+  stroke-dasharray: 4 3;
+  opacity: 0.9;
+  transform: scale(1.55);
+}
+
+.hint {
+  margin: 4px 0 0;
+  min-height: 2.6em;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text-dim);
+}
+
 /* Nodes that started orange get a faint outer ring so the fire's origin stays visible. */
 .node.source .halo {
   opacity: 0.35;

@@ -2,7 +2,7 @@
 
 import type { Graph } from './graph';
 
-export type ModeId = 'spread' | 'containment' | 'threshold';
+export type ModeId = 'spread' | 'containment' | 'threshold' | 'rival' | 'origin' | 'wiring';
 
 interface LevelBase {
   /** Stable id used for saved progress, e.g. "spread-07". */
@@ -35,7 +35,41 @@ export interface ThresholdLevel extends LevelBase {
   par: number;
 }
 
-export type Level = SpreadLevel | ContainmentLevel | ThresholdLevel;
+export interface RivalLevel extends LevelBase {
+  mode: 'rival';
+  /** blue = nodes blue starts on; budget = total orange taps. */
+  params: { blue: number[]; budget: number };
+  /** Precomputed maximum number of orange nodes. */
+  optimum: number;
+}
+
+export interface OriginLevel extends LevelBase {
+  mode: 'origin';
+  params: {
+    /** Number of hidden sources s. */
+    size: number;
+    /** Total ticks T the spread ran. */
+    ticks: number;
+    /** Timed levels: the first `hidden` ticks were unobserved; numbers count from there. */
+    timed: boolean;
+    hidden: number;
+    guesses: number;
+    /** The sources used to make the level (revealed if the player runs out of guesses). */
+    seeds: number[];
+  };
+  /** How many seed sets explain the observation (any of them is accepted). */
+  explanations: number;
+}
+
+export interface WiringLevel extends LevelBase {
+  mode: 'wiring';
+  /** graph.edges are the fixed edges. seed, tick limit T, and new-edge budget. */
+  params: { seed: number; ticks: number; budget: number };
+  /** Precomputed minimum number of new edges. */
+  optimum: number;
+}
+
+export type Level = SpreadLevel | ContainmentLevel | ThresholdLevel | RivalLevel | OriginLevel | WiringLevel;
 
 /** Throws if a level is structurally broken (bad edge indices, positions out of range…). */
 export function validateLevel(level: Level): void {
@@ -59,6 +93,19 @@ export function validateLevel(level: Level): void {
         if (!Number.isInteger(v.threshold) || v.threshold! < 1) throw new Error(`${level.id}: node ${v.id} needs a threshold ≥ 1`);
       }
     }
+  } else if (level.mode === 'rival') {
+    const { blue, budget } = level.params;
+    if (!blue.length || blue.some((b) => !Number.isInteger(b) || b < 0 || b >= n)) throw new Error(`${level.id}: bad blue`);
+    if (!Number.isInteger(budget) || budget < 1) throw new Error(`${level.id}: bad budget`);
+  } else if (level.mode === 'origin') {
+    const { size, ticks, hidden, guesses, seeds } = level.params;
+    if (seeds.length !== size || seeds.some((v) => !Number.isInteger(v) || v < 0 || v >= n)) throw new Error(`${level.id}: bad seeds`);
+    if (!(ticks >= 1 && hidden >= 0 && hidden < ticks && guesses >= 1)) throw new Error(`${level.id}: bad ticks/guesses`);
+    if (!(level.explanations >= 1)) throw new Error(`${level.id}: no explanation`);
+  } else if (level.mode === 'wiring') {
+    const { seed, ticks, budget } = level.params;
+    if (!(Number.isInteger(seed) && seed >= 0 && seed < n && ticks >= 1)) throw new Error(`${level.id}: bad seed/ticks`);
+    if (!(level.optimum >= 1 && budget >= level.optimum)) throw new Error(`${level.id}: bad optimum/budget`);
   } else {
     const { k, sources } = level.params;
     if (!Number.isInteger(k) || k < 1) throw new Error(`${level.id}: bad k`);

@@ -22,7 +22,8 @@ export interface Result {
   /** Saved as the level's best score. */
   score: number;
   lowerIsBetter: boolean;
-  stars: 1 | 2 | 3;
+  /** 0 = the level was failed (nothing is saved). */
+  stars: 0 | 1 | 2 | 3;
   title: string;
   detail: string;
 }
@@ -38,6 +39,23 @@ export interface GameRules<S> {
   result: (state: S) => Result;
   /** Optional text inside each node (e.g. thresholds). */
   labels?: string[];
+  /** Text on the main button (default "Tick"). */
+  tickLabel?: string;
+  /** A short line under the stats (e.g. "Pick 2 sources"). */
+  message?: (state: S) => string;
+  /** Marker classes on nodes, e.g. { wrong: [...] }. */
+  marks?: (state: S) => Record<string, number[]>;
+  /** Edges the player has added (Wiring). */
+  extraEdges?: (state: S) => readonly [number, number][];
+  /** Drag from node a to node b; null if not allowed. Enables drag-to-connect. */
+  dragEdge?: (state: S, a: number, b: number) => S | null;
+  /** Tap the i-th added edge; null if nothing happens. */
+  tapEdge?: (state: S, index: number) => S | null;
+  /**
+   * When true, a tick can't be undone and Restart is hidden until the level ends
+   * (Origin: otherwise undo/restart would refund guesses).
+   */
+  tickIsFinal?: boolean;
   /** Called once after the board is built (e.g. to mark the fire's sources). */
   setupBoard?: (board: Board) => void;
 }
@@ -51,9 +69,9 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
   let finished = false;
   let resultsTimer = 0;
 
-  const board = new Board(level.graph, (node) => {
+  /** Apply a player edit (tap, drag, edge tap) if the rules allow it. */
+  const edit = (next: S | null, tapped?: number) => {
     if (finished) return;
-    const next = rules.tap(state, node);
     if (!next) {
       nudge();
       return;
@@ -61,9 +79,20 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
     history.push(state);
     state = next;
     haptics.tap();
-    board.update({ colors: rules.colors(state), animate: 'tap', tapped: node });
+    render({ animate: 'tap', tapped });
     afterMove();
-  }, rules.labels);
+  };
+
+  const board = new Board(level.graph, {
+    labels: rules.labels,
+    onTapNode: (node) => edit(rules.tap(state, node), node),
+    onDragEdge: rules.dragEdge && ((a, b) => edit(rules.dragEdge!(state, a, b))),
+    onTapEdge: rules.tapEdge && ((i) => edit(rules.tapEdge!(state, i))),
+  });
+
+  function render(extra: { animate?: 'tap' | 'tick' | 'none'; tapped?: number; paths?: [number, number][] } = {}) {
+    board.update({ colors: rules.colors(state), marks: rules.marks?.(state), extraEdges: rules.extraEdges?.(state), ...extra });
+  }
   rules.setupBoard?.(board);
 
   const statEls = rules.stats.map((stat) => {
@@ -74,7 +103,8 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
 
   const undoBtn = h('button', { class: 'icon-btn ctrl', 'aria-label': 'Undo', onclick: undo }, icon('undo'));
   const restartBtn = h('button', { class: 'icon-btn ctrl', 'aria-label': 'Restart', onclick: restart }, icon('restart'));
-  const tickBtn = h('button', { class: 'btn tick', onclick: doTick }, 'Tick');
+  const tickBtn = h('button', { class: 'btn tick', onclick: doTick }, rules.tickLabel ?? 'Tick');
+  const messageEl = h('p', { class: 'hint' });
 
   const title = h('div', {}, h('div', {}, `Level ${index + 1}`), h('div', { class: 'family' }, level.name));
   const help = h('button', { class: 'icon-btn', 'aria-label': 'Rules', onclick: () => showRules(mode) }, icon('help'));
@@ -84,6 +114,7 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
     { class: `screen game mode-${mode.id}` },
     topBar(`#/${mode.id}`, title, help),
     h('div', { class: 'stats' }, ...statEls.map((s) => s.el)),
+    rules.message ? messageEl : null,
     h('div', { class: 'board-wrap' }, board.el),
     h('footer', { class: 'controls' }, undoBtn, tickBtn, restartBtn),
   );
@@ -91,11 +122,15 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
   function doTick() {
     if (finished) return;
     const result = rules.tick(state);
-    if (!result) return;
-    history.push(state);
+    if (!result) {
+      nudge();
+      return;
+    }
+    if (rules.tickIsFinal) history = [];
+    else history.push(state);
     state = result.state;
     haptics.tick();
-    board.update({ colors: rules.colors(state), animate: 'tick', paths: result.paths });
+    render({ animate: 'tick', paths: result.paths });
     afterMove();
   }
 
@@ -103,16 +138,17 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
     const prev = history.pop();
     if (!prev || finished) return;
     state = prev;
-    board.update({ colors: rules.colors(state) });
+    render();
     refresh();
   }
 
   function restart() {
+    if (rules.tickIsFinal && !finished) return;
     clearTimeout(resultsTimer);
     history = [];
     finished = false;
     state = rules.initial();
-    board.update({ colors: rules.colors(state) });
+    render();
     document.querySelector('.overlay.results')?.remove();
     refresh();
   }
@@ -132,8 +168,9 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
       s.value.classList.toggle('over', !!s.stat.dim?.(state));
     }
     undoBtn.disabled = history.length === 0 || finished;
-    restartBtn.disabled = history.length === 0 && !finished;
+    restartBtn.disabled = (history.length === 0 && !finished) || (!!rules.tickIsFinal && !finished);
     tickBtn.disabled = finished;
+    if (rules.message) messageEl.textContent = rules.message(state);
   }
 
   function afterMove() {
@@ -141,18 +178,22 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
     if (!rules.isFinished(state)) return;
     finished = true;
     const result = rules.result(state);
-    const newBest = recordResult(level.id, result.score, result.stars, result.lowerIsBetter);
+    const newBest = result.stars > 0 && recordResult(level.id, result.score, result.stars, result.lowerIsBetter);
     refresh(); // after saving, so a "Best" stat shows the new score
+    render(); // the final state may look different (e.g. Origin reveals the sources)
     // Let the last ripple land before the results card appears.
     resultsTimer = window.setTimeout(() => {
-      haptics.win();
-      board.celebrate();
+      if (result.stars > 0) {
+        haptics.win();
+        board.celebrate();
+      }
       showResults(result, newBest);
     }, 420);
   }
 
   function showResults(result: Result, newBest: boolean) {
     const hasNext = index + 1 < mode.levels.length;
+    const failed = result.stars === 0;
     const overlay = h(
       'div',
       { class: 'overlay results', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Level complete' },
@@ -166,8 +207,12 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
         h(
           'div',
           { class: 'btn-row' },
-          h('button', { class: 'btn', onclick: restart }, 'Retry'),
-          h('a', { class: 'btn primary', href: hasNext ? `#/${mode.id}/${index + 2}` : `#/${mode.id}` }, hasNext ? 'Next level' : 'All levels'),
+          failed
+            ? h('a', { class: 'btn', href: `#/${mode.id}` }, 'All levels')
+            : h('button', { class: 'btn', onclick: restart }, 'Retry'),
+          failed
+            ? h('button', { class: 'btn primary', onclick: restart }, 'Try again')
+            : h('a', { class: 'btn primary', href: hasNext ? `#/${mode.id}/${index + 2}` : `#/${mode.id}` }, hasNext ? 'Next level' : 'All levels'),
         ),
       ),
     );
@@ -187,7 +232,7 @@ export function gameShell<S>(mode: ModeInfo, index: number, rules: GameRules<S>)
   window.addEventListener('keydown', onKey);
 
   refresh();
-  board.update({ colors: rules.colors(state) });
+  render();
   // A level could in principle start already finished (nothing can spread).
   if (rules.isFinished(state)) afterMove();
 

@@ -3,8 +3,8 @@
 "Spread" is a mobile-first puzzle app about how things spread through graphs. It is a
 PWA hosted on GitHub Pages at `https://galacticchill.github.io/spread/` (GitHub user
 **GalacticChill**, repo **spread**). It will eventually contain **six game modes**, each
-based on a real graph theory problem. Built: Mode 1 (Spread), Mode 2 (Containment) and
-Mode 3 (Threshold). The other three are future work.
+based on a real graph theory problem. All six are built: Spread, Containment, Threshold,
+Rival, Origin and Wiring.
 
 Follow this spec in every session. If a request conflicts with it, point that out
 before changing course.
@@ -33,6 +33,9 @@ before changing course.
 - `src/core/threshold.ts` — Mode 3 tick (`thresholdTick`, `thresholdOf`); taps and
   state are shared with `spread.ts`.
 - `src/core/thresholdSolver.ts` — par solver for Mode 3.
+- `src/core/rival.ts` / `rivalSolver.ts` — Mode 4 rules and optimal solver.
+- `src/core/origin.ts` — Mode 5 rules, observation, verification, `allExplanations`.
+- `src/core/wiring.ts` / `wiringSolver.ts` — Mode 6 rules and min-new-edges solver.
 - `src/core/families.ts` — generators for graph families with layouts (paths, cycles,
   stars, wheels, grids, trees incl. `layeredTree(parent[])`, clusters joined by bridges,
   Q3, Petersen), `withThresholds` and `normalize`.
@@ -43,10 +46,13 @@ before changing course.
   JSON fails the tests.
 - `src/ui/shell.ts` — the shared game screen (stats, board, undo/tick/restart,
   keyboard, saving, results card). A mode plugs in via the `GameRules<S>` interface;
-  `src/ui/game.ts` holds each mode's adapter. Add new modes the same way.
+  `src/ui/game.ts` holds each mode's adapter. Optional hooks: custom button label,
+  hint line, marker rings, added edges + drag/tap handlers, `tickIsFinal`, and a
+  0-star result for a failed level (not saved).
 - `src/ui/modes.ts` — mode registry (title, tagline, rules card text, levels).
 - `src/ui/` also has the home/level-select screens, the SVG board (node colors:
-  `none | orange | gray | white`, optional number labels inside nodes), storage, haptics, and the router (hash-based, so it
+  `none | orange | blue | gray | white`, optional number labels inside nodes, dynamic
+  marker rings, player-added edges with drag-to-connect and tap-to-remove), storage, haptics, and the router (hash-based, so it
   works on Pages and offline).
 
 ## Visual design
@@ -60,7 +66,9 @@ before changing course.
 - Minimal text, clean system sans-serif. Portrait phone layout first; must also look
   good on desktop.
 - Tap targets at least **44px** (node hit-testing uses a nearest-node radius, not the
-  drawn circle). Short, smooth animations when nodes change color; on each tick the
+  drawn circle; added edges are hit within 16px). A dashed white ring marks nodes that
+  are "wrong" (Origin's bad guess, Wiring's unreached nodes); a faint solid ring marks
+  where something started (fire sources, blue starts, Wiring's seed). Short, smooth animations when nodes change color; on each tick the
   spread visibly **ripples outward along edges**. Light haptics via `navigator.vibrate`
   where supported. Respect `prefers-reduced-motion`.
 - Screens: **home** (mode list), **level select** (grid with star ratings), **game**,
@@ -74,10 +82,11 @@ before changing course.
   attributes for later modes (e.g. `threshold`).
 - Levels are JSON: `id`, `mode`, `name` (graph-family name shown subtly in game, e.g.
   "Petersen graph"), `graph`, mode-specific `params`, and a precomputed target
-  (`par` for Spread and Threshold, `optimum` for Containment). Threshold levels store r
+  (`par` for Spread and Threshold, `optimum` for Containment, Rival and Wiring;
+  `explanations` for Origin). Threshold levels store r
   on each node as `node.threshold` (required, ≥ 1).
 - Progress (best score and stars per level; lower is better for Spread/Threshold
-  moves, higher for Containment nodes saved) and "rules seen" flags are saved in
+  moves, Origin guesses and Wiring links; higher for Containment and Rival) and "rules seen" flags are saved in
   `localStorage` (versioned keys, wrapped in try/catch so the app still works without it).
 
 ## Mode 1: Spread
@@ -127,6 +136,44 @@ before changing course.
   grid takes ~40 ms. Tests: hand-verified pars (paths, cycles, complete graphs, wheel),
   agreement with the Spread solver when r = 1, and brute force over the game rules.
 
+## Mode 4: Rival (competitive diffusion vs. a deterministic opponent)
+
+- **Blue** starts on given nodes (ringed) and spreads on every tick. The player has a
+  total **budget of orange taps**, usable on uncolored nodes any time between ticks.
+  On a tick both colors spread at once: reached by orange only → orange, blue only →
+  blue, both on the same tick → **gray** (contested, blocked). Colored nodes never
+  change. The game ends when nothing can change (no spread possible and no useful taps).
+  Score = orange nodes. Stars: optimum / optimum−1 / finished.
+- **Solver**: tapping earlier is never worse (earlier orange reaches everything at
+  least as early and only slows blue), so the optimum is an exhaustive search over seed
+  sets of size min(budget, free) placed before the first tick. A brute-force test over
+  every interleaving of taps and ticks backs this up.
+
+## Mode 5: Origin (source identification)
+
+- The player sees the result of a Spread run (r = 1) from **s hidden sources** after
+  **T ticks**, picks s orange nodes as suspects (white) and presses **Check**. **Any**
+  seed set that reproduces the observation exactly is accepted (verified by simulation).
+  **3 guesses**; a wrong guess rings the nodes it would color incorrectly (missed or
+  extra). Undo/Restart can't refund guesses (`tickIsFinal`). Out of guesses = failed
+  (0 stars, original sources revealed). Stars: 1st guess 3, 2nd 2, 3rd 1.
+- **Timed levels**: showing true infection times would give the answer away (sources =
+  the 0s), so the first `hidden` ticks are unobserved and each orange node shows when it
+  turned orange counting from tick `hidden` (0 = already orange then).
+- `allExplanations` counts valid answers for level design (all current levels: 1).
+
+## Mode 6: Wiring (network design)
+
+- Nodes, possibly fixed edges, one **seed** (ringed), tick limit **T**, and a new-link
+  **budget**. Drag node → node to add a link; tap an added link to remove it. **Tick**
+  runs a test spread from the seed (editing resets it); after T ticks without reaching
+  everyone, unreached nodes are ringed. Goal: everyone within T ticks with as few new
+  links as possible. Stars vs. the minimum: par / par+1 / done.
+- **Solver**: iterative deepening on the number of new edges. Branch on the farthest
+  unreached node v: the last new edge (x, y) on v's shortest path has y within T−1 hops
+  of v in the current network, so try y in that ball and any x. Edge sets already
+  tried are skipped. Brute-force tested against trying all edge subsets.
+
 ## Levels
 
 - Mode 1: ~15 levels that teach intuitions progressively using classic families:
@@ -140,6 +187,12 @@ before changing course.
   bridge, Q3, Petersen, and two hub levels (Wheel W6, Hub and ring) where seeding the
   high-degree hub is strictly worse than par although it's the best seed in Spread
   (a test locks this in).
+- Mode 4: 10 levels: paths, hub and spoke, wheel, C10 with two blue fronts, binary tree,
+  two clusters + bridge, 4×4 grid with blue in two corners, Petersen, 5×5 with two blues.
+- Mode 5: 10 levels: P7, C10, 5×5 plus, Petersen, binary tree, two sources on P11 and
+  on the 5×5 grid (separate and overlapping diamonds), and two timed levels.
+- Mode 6: 9 levels: path shortcut, five loose nodes (T = 1 star), two clusters with no
+  bridge, C8, P9, three loose paths, C12 (needs 3), binary tree from a leaf, 4×4 grid.
 - Layouts make the structure recognizable. At 375px width, neighboring nodes should
   stay ≥ 44px apart (e.g. at most ~8 leaves side by side in a tree).
 
